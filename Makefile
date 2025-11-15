@@ -6,6 +6,7 @@ FLAGS += -Werror
 FLAGS += -pedantic
 FLAGS += -g
 FLAGS += -Wno-unused-parameter
+FLAGS += -Wno-error=unused-result
 FLAGS += -Wno-implicit-fallthrough
 FLAGS += -std=c11
 

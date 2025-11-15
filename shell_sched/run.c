@@ -1,5 +1,6 @@
 #include "shell_sched/run.h"
 #include "shell_sched/common.h"
+#include "shell_sched/scheduler.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,6 +8,8 @@
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
 #define STR_EQUAL 0
+
+ShellSchedScheduler scheduler;
 
 void user_scheduler(void);
 void execute_process(void);
@@ -44,7 +47,11 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
-    // TODO
+    // scheduler.key = 0X1234;
+    // scheduler.flags = IPC_CREAT | 0x666;
+    // scheduler.id = msgget(scheduler.key, scheduler.flags);
+    scanf("%d", &scheduler.queues);
+    printf("Queues: %d\n", scheduler.queues);
 }
 
 void execute_process(void) {
@@ -63,11 +70,11 @@ void help_scheduler(void) {
     printf("====================================\n");
     printf("|               HELP               |\n");
     printf("====================================\n");
-    printf("    Available Commands:\n");
-    printf("    | user_scheduler <Number of Queues>     | Create queues\n");
-    printf("    | execute_scheduler <Command Priority>  | Execute scheduler\n");
-    printf("    | list_scheduler                        | List available schedulings\n");
-    printf("    | exit_scheduler                        | Exit scheduler\n");
-    printf("    | help                                  | To get available commands.\n");
+    printf("Available Commands:\n");
+    printf("| user_scheduler <Number of Queues>     | Create queues\n");
+    printf("| execute_scheduler <Command Priority>  | Execute scheduler\n");
+    printf("| list_scheduler                        | List available schedulings\n");
+    printf("| exit_scheduler                        | Exit scheduler\n");
+    printf("| help                                  | To get available commands.\n");
     printf("====================================\n");
 }
