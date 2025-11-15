@@ -1,7 +1,7 @@
-#include "shell_sched/run.h"
-#include "shell_sched/common.h"
-#include "shell_sched/scheduler.h"
-#include "shell_sched/exceptions.h"
+#include "shell_sched/core/run.h"
+#include "shell_sched/core/common.h"
+#include "shell_sched/core/scheduler.h"
+#include "shell_sched/core/exceptions.h"
 
 #include <stdlib.h>
 #include <stdio.h>

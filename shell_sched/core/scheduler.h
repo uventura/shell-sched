@@ -1,7 +1,7 @@
 #ifndef SHELL_SCHED_SCHEDULE_H
 #define SHELL_SCHED_SCHEDULE_H
 
-#include "shell_sched/common.h"
+#include "shell_sched/core/common.h"
 
 #include <sys/types.h>
 #include <sys/ipc.h>

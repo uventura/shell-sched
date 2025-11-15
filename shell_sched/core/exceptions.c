@@ -1,4 +1,4 @@
-#include "shell_sched/exceptions.h"
+#include "shell_sched/core/exceptions.h"
 
 #include <stdio.h>
 #include <stdlib.h>

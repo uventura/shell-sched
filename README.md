@@ -9,9 +9,10 @@ make release
 
 ### Run:
 ```shell
-./shell_sched
+./out/release/bin/shell_sched
 ```
 
+After starting, the available commands are:
 ### User Scheduler
 ```shell
 > shell_sched: user_scheduler <Number of Queues>
@@ -19,7 +20,7 @@ make release
 
 ### Execute Process
 ```shell
-> shell_sched: execute_scheduler <Command Priority>
+> shell_sched: execute_scheduler <Command> <Priority>
 ```
 
 ### List Scheduler
