@@ -1,0 +1,6 @@
+#ifndef SHELL_SCHED_EXCEPTIONS_H
+#define SHELL_SCHED_EXCEPTIONS_H
+
+
+
+#endif
