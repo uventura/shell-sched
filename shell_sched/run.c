@@ -1,6 +1,7 @@
 #include "shell_sched/run.h"
 #include "shell_sched/common.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 
 #define RUNNING 1
@@ -11,13 +12,19 @@ void user_scheduler(void);
 void execute_process(void);
 void list_scheduler(void);
 void exit_scheduler(void);
+void help_scheduler(void);
 
 void shell_sched_run() {
     while(RUNNING) {
         printf("> shell_sched: ");
 
         char command[MAX_COMMAND_SIZE];
-        scanf("%s", command);
+        int scan_result = scanf("%s", command);
+
+        if(scan_result == 0) {
+            printf("[ShellSchedCliError] Scan result was an error.\n");
+            exit(-1);
+        }
 
         if(strcmp(command, "user_scheduler") == STR_EQUAL) {
             user_scheduler();
@@ -28,6 +35,10 @@ void shell_sched_run() {
         } else if(strcmp(command, "exit_scheduler") == STR_EQUAL) {
             exit_scheduler();
             break;
+        } else if(strcmp(command, "help") == STR_EQUAL) {
+            help_scheduler();
+        } else {
+            printf("[ShellSchedCliError] The command could not be found.\nType 'help' to get the available commands.\n");
         }
     }
 }
@@ -46,4 +57,17 @@ void list_scheduler(void) {
 
 void exit_scheduler(void) {
     printf("Bye! :)\n");
+}
+
+void help_scheduler(void) {
+    printf("====================================\n");
+    printf("|               HELP               |\n");
+    printf("====================================\n");
+    printf("    Available Commands:\n");
+    printf("    | user_scheduler <Number of Queues>     | Create queues\n");
+    printf("    | execute_scheduler <Command Priority>  | Execute scheduler\n");
+    printf("    | list_scheduler                        | List available schedulings\n");
+    printf("    | exit_scheduler                        | Exit scheduler\n");
+    printf("    | help                                  | To get available commands.\n");
+    printf("====================================\n");
 }
