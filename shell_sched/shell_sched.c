@@ -1,5 +1,5 @@
-#include <stdio.h>
+#include "shell_sched/run.h"
 
 int main() {
-    printf("Hello, World!\n");
+    shell_sched_run();
 }

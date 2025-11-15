@@ -1,5 +1,10 @@
 # Shell Sched
 
+## How to Build
+```shell
+make release
+```
+
 ## Commands
 
 ### Run:

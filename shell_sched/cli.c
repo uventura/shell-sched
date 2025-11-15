@@ -1,6 +1,8 @@
 #include "shell_sched/cli.h"
 #include "shell_sched/common.h"
 
+#include <stdio.h>
+
 ShellSchedCli auri_cli(int argc, char* argv[]) {
     ShellSchedCli cli;
     cli.help = false;
