@@ -50,9 +50,10 @@ $(OBJ_DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 
 release: $(TARGET)
 
-debug: $(OBJS_DEBUG)
-	@mkdir -p $(DEBUG_BIN_DIR)
-	$(CC) -o $(DEBUG_BIN_DIR)/$(TARGET) $^ $(DEBUG_FLAGS) -I .
+# Disabbling Debug mode for instance
+# debug: $(OBJS_DEBUG)
+# 	@mkdir -p $(DEBUG_BIN_DIR)
+# 	$(CC) -o $(DEBUG_BIN_DIR)/$(TARGET) $^ $(DEBUG_FLAGS) -I .
 
 clean:
 	@echo "Clean up environment..."
