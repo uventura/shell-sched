@@ -1,5 +1,5 @@
-#include "shell-sched/cli.h"
-#include "shell-sched/common.h"
+#include "shell_sched/cli.h"
+#include "shell_sched/common.h"
 
 ShellSchedCli auri_cli(int argc, char* argv[]) {
     ShellSchedCli cli;

@@ -1,5 +1,5 @@
 CC = gcc
-TARGET = shell-sched
+TARGET = shell_sched
 FLAGS = -W
 FLAGS += -Wall
 FLAGS += -Werror
@@ -26,7 +26,7 @@ DEBUG_DIR = $(OUT_DIR)/debug
 DEBUG_BIN_DIR = $(DEBUG_DIR)/bin
 RELEASE_BIN_DIR = $(RELEASE_DIR)/bin
 
-SRC_DIR = shell-sched
+SRC_DIR = shell_sched
 SRC = $(shell find $(SRC_DIR) -name '*.c')
 
 OBJ_RELEASE_DIR = $(RELEASE_DIR)/obj
