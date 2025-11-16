@@ -1,6 +1,7 @@
 #include "shell_sched/core/run.h"
 #include "shell_sched/core/common.h"
 #include "shell_sched/core/scheduler.h"
+#include "shell_sched/core/process.h"
 #include "shell_sched/core/exceptions.h"
 
 #include <stdlib.h>
@@ -82,7 +83,32 @@ void user_scheduler(void) {
 }
 
 void execute_process(void) {
-    // TODO
+    if(!scheduler.started) {
+        printf("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
+        return;
+    }
+
+    // build and send a NEW_PROCESS message to the scheduler queue
+    ShellSchedMsgNewProcess msg;
+    msg.mtype = SHELL_SCHED_MSG_NEW_PROCESS;
+
+    // read command (single token) and priority directly into the message
+    shell_sched_check_scanf_result(scanf("%s %d", msg.command, &msg.priority));
+
+    if(msg.priority < 1 || msg.priority > scheduler.queues) {
+        printf("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n\n", scheduler.queues);
+        return;
+    }
+
+    size_t msgsz = sizeof(ShellSchedMsgNewProcess) - sizeof(long);
+    int send_result = msgsnd(scheduler.id, &msg, msgsz, 0);
+    if(send_result == -1) {
+        perror("[ShellSchedError] msgsnd");
+        printf("[ShellSchedError] Failed to enqueue process request (qid=%d).\n\n", scheduler.id);
+        return;
+    }
+
+    printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
 }
 
 void list_scheduler(void) {
@@ -118,7 +144,7 @@ void help_scheduler(void) {
     printf("====================================\n");
     printf("Available Commands:\n");
     printf("| user_scheduler <Number of Queues>       | Create queues\n");
-    printf("| execute_scheduler <Command> <Priority>  | Execute scheduler\n");
+    printf("| execute_process <Command> <Priority>    | Enqueue a process request\n");
     printf("| list_scheduler                          | List available schedulings\n");
     printf("| exit_scheduler                          | Exit scheduler\n");
     printf("| help                                    | To get available commands.\n");
