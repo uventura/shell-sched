@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
@@ -59,8 +60,21 @@ void user_scheduler(void) {
     scheduler.id = msgget(scheduler.key, scheduler.flags);
 
     if(scheduler.id < 0) {
-        printf("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
-        return;
+        int saved_errno = errno;
+        perror("[ShellSchedError] msgget");
+        // fallback, create a private queue to bypass bad-perm queues
+        if(saved_errno == EACCES) {
+            scheduler.id = msgget(IPC_PRIVATE, SCHEDULER_DEFAULT_FLAGS);
+            if(scheduler.id < 0) {
+                perror("[ShellSchedError] msgget(IPC_PRIVATE)");
+                printf("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
+                return;
+            }
+            printf("[Warn] Using a private message queue (id=%d) due to permission issues on the default key.\n", scheduler.id);
+        } else {
+            printf("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
+            return;
+        }
     }
 
     scheduler.started = true;
