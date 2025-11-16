@@ -8,7 +8,7 @@
 #include <sys/msg.h>
 
 #define SCHEDULER_DEFAULT_ID 0X1234
-#define SCHEDULER_DEFAULT_FLAGS (IPC_CREAT | 0x666)
+#define SCHEDULER_DEFAULT_FLAGS (IPC_CREAT | 0666)
 
 typedef struct {
     bool started;
