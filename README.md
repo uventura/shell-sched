@@ -20,7 +20,7 @@ After starting, the available commands are:
 
 ### Execute Process
 ```shell
-> shell_sched: execute_scheduler <Command> <Priority>
+> shell_sched: execute_process <Command> <Priority>
 ```
 
 ### List Scheduler
