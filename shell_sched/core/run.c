@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "shell_sched/core/run.h"
 #include "shell_sched/core/common.h"
 #include "shell_sched/core/scheduler.h"
@@ -7,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
@@ -49,6 +52,7 @@ void shell_sched_run() {
     }
 }
 
+
 void user_scheduler(void) {
     shell_sched_check_scanf_result(scanf("%d", &scheduler.queues));
     if(scheduler.queues <= 0 || scheduler.queues > 3) {
@@ -78,8 +82,20 @@ void user_scheduler(void) {
         }
     }
 
+    // cria filho escalonador 
+    pid_t scheduler_pid = fork();
+    if(scheduler_pid < 0){
+        printf(">>Erro no FORK do escalonador!!\n");
+        return;
+    }
+    if(!scheduler_pid){
+        run_scheduler_loop(scheduler.id, scheduler.queues);
+        _exit(0);
+    }
+    
+
     scheduler.started = true;
-    printf("Scheduler queue created.\n\n");
+    printf("Scheduler queue created. Scheduler pid=%d\n\n", (int)scheduler_pid);
 }
 
 void execute_process(void) {
