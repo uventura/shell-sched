@@ -4,6 +4,7 @@
 #include "shell_sched/core/common.h"
 
 #include <sys/types.h>
+#include <sys/ipc.h>
 
 #define SHELL_SCHED_CMD_MAX 256
 
@@ -28,5 +29,9 @@ typedef union {
     long mtype;
     ShellSchedMsgNewProcess newProcess;
 } ShellSchedMessage;
+
+// adicione em process.h (no final do arquivo, antes do #endif)
+void shell_sched_scheduler_main(key_t key, int flags, int queues);
+
 
 #endif

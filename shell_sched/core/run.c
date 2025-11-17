@@ -3,10 +3,13 @@
 #include "shell_sched/core/scheduler.h"
 #include "shell_sched/core/process.h"
 #include "shell_sched/core/exceptions.h"
+#include "shell_sched/core/process.h"
+
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
@@ -15,7 +18,7 @@
 // QUESTIONS: São vários schedulers ou apenas um?
 ShellSchedScheduler scheduler;
 
-void user_scheduler(void);
+void create_user_scheduler(void);
 void execute_process(void);
 void list_scheduler(void);
 void exit_scheduler(void);
@@ -32,8 +35,8 @@ void shell_sched_run() {
         int scan_result = scanf("%s", command);
         shell_sched_check_scanf_result(scan_result);
 
-        if(strcmp(command, "user_scheduler") == STR_EQUAL) {
-            user_scheduler();
+        if(strcmp(command, "create_user_scheduler") == STR_EQUAL) {
+            create_user_scheduler();
         } else if(strcmp(command, "execute_process") == STR_EQUAL) {
             execute_process();
         }else if(strcmp(command, "list_scheduler") == STR_EQUAL) {
@@ -49,7 +52,7 @@ void shell_sched_run() {
     }
 }
 
-void user_scheduler(void) {
+void create_user_scheduler(void) {
     shell_sched_check_scanf_result(scanf("%d", &scheduler.queues));
     if(scheduler.queues <= 0 || scheduler.queues > 3) {
         printf("[ShellSchedError] The number of queues can be 2 or 3.\n");
@@ -59,6 +62,23 @@ void user_scheduler(void) {
     scheduler.key = SCHEDULER_DEFAULT_ID;
     scheduler.flags = SCHEDULER_DEFAULT_FLAGS;
     scheduler.id = msgget(scheduler.key, scheduler.flags);
+
+    scheduler.started = true;
+    printf("Scheduler queue created.\n\n");
+
+    pid_t sched_pid = fork();
+    if (sched_pid < 0) {
+        perror("[ShellSchedError] fork scheduler");
+        return;
+    }
+    if (sched_pid == 0) {
+        // filho -> roda o loop do escalonador
+        shell_sched_scheduler_main(scheduler.key, scheduler.flags, scheduler.queues);
+        // caso a função retorne, saia
+        _exit(0);
+    } else {
+        printf("[Info] Scheduler process forked (pid=%d)\n\n", sched_pid);
+    }
 
     if(scheduler.id < 0) {
         int saved_errno = errno;
@@ -84,7 +104,7 @@ void user_scheduler(void) {
 
 void execute_process(void) {
     if(!scheduler.started) {
-        printf("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
+        printf("[ShellSchedError] The scheduler is not started, please run 'create_user_scheduler <queues>' first.\n\n");
         return;
     }
 
@@ -143,7 +163,7 @@ void help_scheduler(void) {
     printf("|               HELP               |\n");
     printf("====================================\n");
     printf("Available Commands:\n");
-    printf("| user_scheduler <Number of Queues>       | Create queues\n");
+    printf("| create_user_scheduler <Number of Queues>       | Create queues\n");
     printf("| execute_process <Command> <Priority>    | Enqueue a process request\n");
     printf("| list_scheduler                          | List available schedulings\n");
     printf("| exit_scheduler                          | Exit scheduler\n");
