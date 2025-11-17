@@ -15,7 +15,7 @@ make release
 After starting, the available commands are:
 ### User Scheduler
 ```shell
-> shell_sched: user_scheduler <Number of Queues>
+> shell_sched: create_user_scheduler <Number of Queues>
 ```
 
 ### Execute Process
@@ -31,4 +31,13 @@ After starting, the available commands are:
 ### Exit Scheduller
 ```shell
 > shell_sched: exit_scheduler
+```
+
+## Example
+
+```
+make clean && make release
+./out/release/bin/shell_sched
+create_user_scheduler 2
+execute_process "./shell_sched/test/huge_for" 1
 ```

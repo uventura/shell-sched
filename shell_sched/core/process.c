@@ -174,8 +174,9 @@ void start_next_proc(){
                         break;
                     }
 
-                    // evita busy wait
-                    sleep(50000);
+                    // evita busy wait, espera 50ms
+                    struct timespec ts = {0, 50000000};
+                    nanosleep(&ts, NULL);
                 }
 
                 return;
