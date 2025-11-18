@@ -5,6 +5,7 @@
 #include "shell_sched/core/exceptions.h"
 #include "shell_sched/core/shared.h"
 
+#include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,7 +16,9 @@
 #define STR_EQUAL 0
 #define CHILD_PROCESS 0
 
+int run_shared_memory_id;
 bool scheduler_started = false;
+int scheduler_queues;
 
 void user_scheduler(void);
 void execute_process(void);
@@ -25,7 +28,7 @@ void help_scheduler(void);
 
 void shell_sched_run() {
     scheduler_started = false;
-    shell_sched_init_shared_space();
+    run_shared_memory_id = shell_sched_init_shared_memory();
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -53,6 +56,7 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
+    shell_sched_check_scanf_result(scanf("%d", &scheduler_queues));
     pid_t pid = fork();
 
     if(pid < 0) {
@@ -67,7 +71,13 @@ void user_scheduler(void) {
 }
 
 void execute_process(void) {
+    ShellSchedNewProcess process;
+    shell_sched_check_scanf_result(scanf("%s %d", process.command, &process.priority));
 
+    ShellSchedSharedMemData data;
+    data.type = NEW_PROCESS_SHARED;
+    data.process = process;
+    shell_sched_write_shared_memory(run_shared_memory_id, &data);
 }
 
 void list_scheduler(void) {

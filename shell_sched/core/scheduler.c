@@ -5,13 +5,13 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <stdlib.h>
 
 ShellSchedScheduler scheduler;
 
 void execute_process_scheduler();
 
 void shell_sched_init_scheduler() {
-    shell_sched_check_scanf_result(scanf("%d", &scheduler.queues));
     if(scheduler.queues <= 0 || scheduler.queues > 3) {
         shell_sched_throw_execution_error("[ShellSchedError] The number of queues can be 2 or 3.\n");
         return;
@@ -43,7 +43,7 @@ void shell_sched_init_scheduler() {
 }
 
 void shell_sched_run_scheduler() {
-
+    exit(SHELL_SCHED_FINISHED);
 }
 
 void shell_sched_destroy_scheduler() {
@@ -73,24 +73,18 @@ void execute_process_scheduler() {
         exit(-1);
     }
 
-    ShellSchedMsgNewProcess msg;
-    msg.mtype = SHELL_SCHED_MSG_NEW_PROCESS;
+    // if(msg.priority < 1 || msg.priority > scheduler.queues) {
+    //     shell_sched_throw_execution_error("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n\n", scheduler.queues);
+    //     return;
+    // }
 
-    // read command (single token) and priority directly into the message
-    shell_sched_check_scanf_result(scanf("%s %d", msg.command, &msg.priority));
+    // size_t msgsz = sizeof(ShellSchedMsgNewProcess) - sizeof(long);
+    // int send_result = msgsnd(scheduler.id, &msg, msgsz, 0);
+    // if(send_result == -1) {
+    //     perror("[ShellSchedError] msgsnd");
+    //     shell_sched_throw_execution_error("[ShellSchedError] Failed to enqueue process request (qid=%d).\n\n", scheduler.id);
+    //     return;
+    // }
 
-    if(msg.priority < 1 || msg.priority > scheduler.queues) {
-        shell_sched_throw_execution_error("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n\n", scheduler.queues);
-        return;
-    }
-
-    size_t msgsz = sizeof(ShellSchedMsgNewProcess) - sizeof(long);
-    int send_result = msgsnd(scheduler.id, &msg, msgsz, 0);
-    if(send_result == -1) {
-        perror("[ShellSchedError] msgsnd");
-        shell_sched_throw_execution_error("[ShellSchedError] Failed to enqueue process request (qid=%d).\n\n", scheduler.id);
-        return;
-    }
-
-    printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
+    // printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
 }

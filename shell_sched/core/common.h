@@ -7,4 +7,6 @@
 #include <stddef.h>
 #include <string.h>
 
+#define SHELL_SCHED_FINISHED 0
+
 #endif
