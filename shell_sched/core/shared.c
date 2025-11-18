@@ -19,7 +19,6 @@ int shell_sched_init_shared_memory() {
         shell_sched_shared_memory_key++;
     } while(shell_sched_shared_memory_id < 0);
 
-    printf("%x\n", shell_sched_shared_memory_key);
     return shell_sched_shared_memory_id;
 }
 

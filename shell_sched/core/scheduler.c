@@ -14,14 +14,20 @@
 #define __USE_POSIX 200809L
 #include <signal.h>
 
+#define SCHEDULER_QUANTUM 20
+
 int scheduler_shared_memory_id;
 ShellSchedSharedMemData* scheduler_shared_memory;
 ShellSchedScheduler scheduler;
 
 void execute_process_scheduler(void);
 void continue_parent_process(void);
+void destroy_scheduler(int signal);
 
 void shell_sched_init_scheduler() {
+    printf("Starting scheduler...\n");
+    signal(SIGQUIT, destroy_scheduler);
+
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
 
@@ -31,55 +37,27 @@ void shell_sched_init_scheduler() {
         return;
     }
 
-    scheduler.key = SCHEDULER_DEFAULT_ID;
-    scheduler.flags = SCHEDULER_DEFAULT_FLAGS;
-    scheduler.id = msgget(scheduler.key, scheduler.flags);
-    scheduler.parent = getppid();
-
-    if(scheduler.id < 0) {
-        int saved_errno = errno;
-        perror("[ShellSchedError] msgget");
-
-        // fallback, create a private queue to bypass bad-perm queues
-        if(saved_errno == EACCES) {
-            scheduler.id = msgget(IPC_PRIVATE, SCHEDULER_DEFAULT_FLAGS);
-            if(scheduler.id < 0) {
-                perror("[ShellSchedError] msgget(IPC_PRIVATE)");
-                shell_sched_throw_execution_error("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
-            }
-            printf("[Warn] Using a private message queue (id=%d) due to permission issues on the default key.\n", scheduler.id);
-        } else {
-            shell_sched_throw_execution_error("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
-            return;
-        }
-    }
-
     scheduler.started = true;
+
+    printf("Scheduler started.\n");
     continue_parent_process();
 }
 
 void shell_sched_run_scheduler() {
+    printf("Running scheduler...\n");
+    while(1) {
+        sleep(SCHEDULER_QUANTUM);
+    }
     exit(SHELL_SCHED_FINISHED);
 }
 
-void shell_sched_destroy_scheduler() {
+void destroy_scheduler(int signal) {
     if(scheduler.started) {
-        struct msqid_ds removed_queue_result;
-        int remove_result = msgctl(scheduler.id, IPC_RMID, &removed_queue_result);
-
-        if(remove_result == -1) {
-            shell_sched_throw_execution_error("[ShellSchedError] The queue couldn't be removed.\n");
-        }
-
-        printf("[Scheduler Info]\n");
-        printf("| msg_stime = %ld\n", removed_queue_result.msg_stime);
-        printf("| msg_rtime = %ld\n", removed_queue_result.msg_rtime);
-        printf("| msg_ctime = %ld\n", removed_queue_result.msg_ctime);
-        printf("| msg_qnum = %ld\n", removed_queue_result.msg_qnum);
-        printf("| msg_qbytes = %ld\n", removed_queue_result.msg_qbytes);
-        printf("| msg_lspid = %d\n", removed_queue_result.msg_lspid);
-        printf("| msg_lrpid = %d\n\n", removed_queue_result.msg_lrpid);
+        shell_sched_dettach_shared_memory(scheduler_shared_memory);
     }
+
+    printf("Scheduler destroyed.\n");
+    exit(SHELL_SCHED_FINISHED);
 }
 
 
@@ -89,20 +67,6 @@ void execute_process_scheduler(void) {
         exit(-1);
     }
 
-    // if(msg.priority < 1 || msg.priority > scheduler.queues) {
-    //     shell_sched_throw_execution_error("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n\n", scheduler.queues);
-    //     return;
-    // }
-
-    // size_t msgsz = sizeof(ShellSchedMsgNewProcess) - sizeof(long);
-    // int send_result = msgsnd(scheduler.id, &msg, msgsz, 0);
-    // if(send_result == -1) {
-    //     perror("[ShellSchedError] msgsnd");
-    //     shell_sched_throw_execution_error("[ShellSchedError] Failed to enqueue process request (qid=%d).\n\n", scheduler.id);
-    //     return;
-    // }
-
-    // printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
     continue_parent_process();
 }
 

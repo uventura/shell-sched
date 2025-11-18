@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/wait.h>
+
+#define _POSIX_C_SOURCE 200809L
+#define __USE_POSIX 200809L
+#include <signal.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
@@ -18,6 +23,8 @@
 
 int run_share_memory_id;
 ShellSchedSharedMemData* run_shared_memory;
+
+pid_t scheduler_pid;
 bool scheduler_started = false;
 
 void user_scheduler(void);
@@ -26,14 +33,16 @@ void list_scheduler(void);
 void exit_scheduler(void);
 void help_scheduler(void);
 
+void continue_after_scheduler_signal(int signal);
 void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
     scheduler_started = false;
+    signal(SIGCONT, continue_after_scheduler_signal);
 
-    // run_share_memory_id = shell_sched_init_shared_memory();
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
+
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -69,18 +78,19 @@ void user_scheduler(void) {
     data.i32 = scheduler_queues;
 
     shell_sched_write_shared_memory(run_shared_memory, data);
-    wait_scheduler_finish_action();
 
-    pid_t pid = fork();
-    if(pid < 0) {
+    scheduler_pid = fork();
+    if(scheduler_pid < 0) {
         printf("[ShellSchedError] The user scheduler couldn't be started.");
-    } else if(pid == CHILD_PROCESS) {
+    } else if(scheduler_pid == CHILD_PROCESS) {
         shell_sched_init_scheduler();
         shell_sched_run_scheduler();
     } else {
-        printf("Scheduler queue created.\n\n");
         scheduler_started = true;
     }
+
+    wait_scheduler_finish_action();
+    printf("\n");
 }
 
 void execute_process(void) {
@@ -100,10 +110,11 @@ void list_scheduler(void) {
 }
 
 void exit_scheduler(void) {
-    shell_sched_destroy_shared_memory();
     if(scheduler_started) {
-        // wait_scheduler_finish_action();
+        kill(scheduler_pid, SIGQUIT);
+        wait(NULL);
     }
+    shell_sched_destroy_shared_memory();
     printf("Bye! :)\n");
 }
 
@@ -119,6 +130,8 @@ void help_scheduler(void) {
     printf("| help                                    | To get available commands.\n");
     printf("====================================\n");
 }
+
+void continue_after_scheduler_signal(int signal) {}
 
 void wait_scheduler_finish_action(void) {
     // Wait a signal which means that the process has been registered.
