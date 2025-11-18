@@ -61,6 +61,7 @@ void user_scheduler(void) {
         shell_sched_init_scheduler();
         shell_sched_run_scheduler();
     } else {
+        printf("Scheduler queue created.\n\n");
         scheduler_started = true;
     }
 }

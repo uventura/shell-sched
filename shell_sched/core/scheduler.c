@@ -40,7 +40,6 @@ void shell_sched_init_scheduler() {
     }
 
     scheduler.started = true;
-    printf("Scheduler queue created.\n\n");
 }
 
 void shell_sched_run_scheduler() {
