@@ -3,6 +3,7 @@
 #include "shell_sched/core/scheduler.h"
 #include "shell_sched/core/process.h"
 #include "shell_sched/core/exceptions.h"
+#include "shell_sched/core/shared.h"
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -24,6 +25,7 @@ void help_scheduler(void);
 
 void shell_sched_run() {
     scheduler_started = false;
+    shell_sched_init_shared_space();
 
     while(RUNNING) {
         printf("> shell_sched: ");
