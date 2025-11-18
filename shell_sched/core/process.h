@@ -27,6 +27,6 @@ typedef struct {
 void shell_sched_process_queue_init(ShellSchedProcessQueue* queue);
 void shell_sched_process_queue_free(ShellSchedProcessQueue* queue);
 void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedProcess* process);
-ShellSchedProcessQueue* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue);
+ShellSchedProcess* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue);
 
 #endif

@@ -1,5 +1,7 @@
 #include "shell_sched/core/process.h"
 
+#include <malloc.h>
+
 void shell_sched_process_queue_init(ShellSchedProcessQueue* queue) {
     queue->front = NULL;
     queue->size = 0;
@@ -32,7 +34,7 @@ void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedPro
     current->next = process;
 }
 
-ShellSchedProcessQueue* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue) {
+ShellSchedProcess* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue) {
     if(queue->front == NULL) {
         return NULL;
     }

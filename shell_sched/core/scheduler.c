@@ -20,6 +20,7 @@ int scheduler_shared_memory_id;
 ShellSchedSharedMemData* scheduler_shared_memory;
 ShellSchedScheduler scheduler;
 
+void init_scheduler_queues(void);
 void execute_process_scheduler(void);
 void continue_parent_process(void);
 void destroy_scheduler(int signal);
@@ -37,9 +38,10 @@ void shell_sched_init_scheduler() {
         return;
     }
 
+    init_scheduler_queues();
     scheduler.started = true;
-
     printf("Scheduler started.\n");
+
     continue_parent_process();
 }
 
@@ -60,6 +62,11 @@ void destroy_scheduler(int signal) {
     exit(SHELL_SCHED_FINISHED);
 }
 
+void init_scheduler_queues(void) {
+    for(int i = 0; i < scheduler.queues; ++i) {
+        shell_sched_process_queue_init(&scheduler.process_queue[i]);
+    }
+}
 
 void execute_process_scheduler(void) {
     if(!scheduler.started) {
