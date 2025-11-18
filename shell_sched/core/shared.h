@@ -22,6 +22,7 @@ typedef struct {
 
 int shell_sched_init_shared_memory();
 void shell_sched_destroy_shared_memory();
+int shell_sched_get_shared_memory();
 
 ShellSchedSharedMemData* shell_sched_attach_shared_memory();
 void shell_sched_dettach_shared_memory(ShellSchedSharedMemData* memory);

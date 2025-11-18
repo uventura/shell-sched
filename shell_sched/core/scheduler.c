@@ -14,14 +14,16 @@
 #define __USE_POSIX 200809L
 #include <signal.h>
 
+int scheduler_shared_memory_id;
+ShellSchedSharedMemData* scheduler_shared_memory;
 ShellSchedScheduler scheduler;
 
 void execute_process_scheduler(void);
 void continue_parent_process(void);
 
 void shell_sched_init_scheduler() {
-    printf("Starting...\n");
-    ShellSchedSharedMemData data = shell_sched_read_shared_memory();
+    scheduler_shared_memory = shell_sched_attach_shared_memory();
+    ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
 
     scheduler.queues = data.i32;
     if(scheduler.queues <= 0 || scheduler.queues > 3) {

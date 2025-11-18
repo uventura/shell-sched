@@ -16,7 +16,8 @@
 #define STR_EQUAL 0
 #define CHILD_PROCESS 0
 
-int run_shared_memory_id;
+int run_share_memory_id;
+ShellSchedSharedMemData* run_shared_memory;
 bool scheduler_started = false;
 
 void user_scheduler(void);
@@ -29,7 +30,10 @@ void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
     scheduler_started = false;
-    run_shared_memory_id = shell_sched_init_shared_memory();
+
+    // run_share_memory_id = shell_sched_init_shared_memory();
+    shell_sched_init_shared_memory();
+    run_shared_memory = shell_sched_attach_shared_memory();
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -63,9 +67,8 @@ void user_scheduler(void) {
     ShellSchedSharedMemData data;
     data.type = INT_SHARED;
     data.i32 = scheduler_queues;
-    printf("Write in shared memory\n");
-    shell_sched_write_shared_memory(data);
-    printf("Finish Write in shared memory\n");
+
+    shell_sched_write_shared_memory(run_shared_memory, data);
     wait_scheduler_finish_action();
 
     pid_t pid = fork();
@@ -87,7 +90,7 @@ void execute_process(void) {
     ShellSchedSharedMemData data;
     data.type = NEW_PROCESS_SHARED;
     data.process = process;
-    shell_sched_write_shared_memory(data);
+    shell_sched_write_shared_memory(run_shared_memory, data);
 
     wait_scheduler_finish_action();
 }
