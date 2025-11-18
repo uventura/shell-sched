@@ -4,31 +4,46 @@
 
 #include <sys/mman.h>
 #include <sys/ipc.h>
+#include <stdio.h>
+
+#define SHELL_SCHED_SHARED_MEMORY_ID_DEFAULT 0x123456
+
+key_t shell_sched_shared_memory_key;
+int shell_sched_shared_memory_id;
+// ShellSchedSharedMemData* shell_sched_shared_memory_data;
 
 int shell_sched_init_shared_memory() {
-    int shmid = shmget(SHELL_SCHED_SHARED_MEMORY_ID, SHELL_SCHED_SHARED_MEMORY_SIZE, IPC_CREAT | 0x666);
+    shell_sched_shared_memory_key = SHELL_SCHED_SHARED_MEMORY_ID_DEFAULT;
 
-    if(shmid < 0) {
-        shell_sched_throw_execution_error("[ShellSchedError] The shared memory couldn't be started");
+    do {
+        shell_sched_shared_memory_id = shmget(IPC_PRIVATE, sizeof(ShellSchedSharedMemData), IPC_CREAT | 0x666);
+        shell_sched_shared_memory_key++;
+    } while(shell_sched_shared_memory_id < 0);
+
+    printf("%d\n", shell_sched_shared_memory_key);
+    return shell_sched_shared_memory_id;
+}
+
+void shell_sched_destroy_shared_memory() {
+    shmctl(shell_sched_shared_memory_id, IPC_RMID, NULL);
+}
+
+ShellSchedSharedMemData* shell_sched_get_shared_memory() {
+    ShellSchedSharedMemData* attach_result = shmat(shell_sched_shared_memory_key, (char*)0, 0);
+    if(attach_result == (ShellSchedSharedMemData*)-1) {
+        shell_sched_throw_execution_error("[ShellSchedError] The shared memory couldn't be attached.\n");
     }
-    return shmid;
+    return attach_result;
 }
 
-void shell_sched_write_shared_memory(int shared_memory_id, ShellSchedSharedMemData* data) {
-    ShellSchedSharedMemData* shared_ptr = (ShellSchedSharedMemData*)shmat(shared_memory_id, NULL, 0);
-    *shared_ptr = *((ShellSchedSharedMemData*)data);
+void shell_sched_dettach_shared_memory(ShellSchedSharedMemData* memory) {
+    shmdt(memory);
 }
 
-ShellSchedSharedMemData shell_sched_read_shared_memory(int shared_memory_id) {
-    ShellSchedSharedMemData* shared_ptr = (ShellSchedSharedMemData*)shmat(shared_memory_id, NULL, 0);
-    return *shared_ptr;
+void shell_sched_write_shared_memory(ShellSchedSharedMemData* memory, ShellSchedSharedMemData data) {
+    *memory = data;
 }
 
-int shell_sched_get_shared_memory() {
-    int shmid = shmget(SHELL_SCHED_SHARED_MEMORY_ID, 0, 0x666);
-
-    if(shmid < 0) {
-        shell_sched_throw_execution_error("[ShellSchedError] The shared memory couldn't be started");
-    }
-    return shmid;
+ShellSchedSharedMemData shell_sched_read_shared_memory(ShellSchedSharedMemData* memory) {
+    return *memory;
 }

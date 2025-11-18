@@ -18,13 +18,14 @@
 
 int run_shared_memory_id;
 bool scheduler_started = false;
-int scheduler_queues;
 
 void user_scheduler(void);
 void execute_process(void);
 void list_scheduler(void);
 void exit_scheduler(void);
 void help_scheduler(void);
+
+void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
     scheduler_started = false;
@@ -56,9 +57,18 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
+    int scheduler_queues;
     shell_sched_check_scanf_result(scanf("%d", &scheduler_queues));
-    pid_t pid = fork();
 
+    ShellSchedSharedMemData data;
+    data.type = INT_SHARED;
+    data.i32 = scheduler_queues;
+    printf("Write in shared memory\n");
+    shell_sched_write_shared_memory(data);
+    printf("Finish Write in shared memory\n");
+    wait_scheduler_finish_action();
+
+    pid_t pid = fork();
     if(pid < 0) {
         printf("[ShellSchedError] The user scheduler couldn't be started.");
     } else if(pid == CHILD_PROCESS) {
@@ -77,7 +87,9 @@ void execute_process(void) {
     ShellSchedSharedMemData data;
     data.type = NEW_PROCESS_SHARED;
     data.process = process;
-    shell_sched_write_shared_memory(run_shared_memory_id, &data);
+    shell_sched_write_shared_memory(data);
+
+    wait_scheduler_finish_action();
 }
 
 void list_scheduler(void) {
@@ -85,8 +97,9 @@ void list_scheduler(void) {
 }
 
 void exit_scheduler(void) {
+    shell_sched_destroy_shared_memory();
     if(scheduler_started) {
-
+        // wait_scheduler_finish_action();
     }
     printf("Bye! :)\n");
 }
@@ -102,4 +115,9 @@ void help_scheduler(void) {
     printf("| exit_scheduler                          | Exit scheduler\n");
     printf("| help                                    | To get available commands.\n");
     printf("====================================\n");
+}
+
+void wait_scheduler_finish_action(void) {
+    // Wait a signal which means that the process has been registered.
+    pause();
 }

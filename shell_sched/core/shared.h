@@ -7,9 +7,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-#define SHELL_SCHED_SHARED_MEMORY_ID 0x23579
-#define SHELL_SCHED_SHARED_MEMORY_SIZE 4096
-
 typedef enum {
     INT_SHARED,
     NEW_PROCESS_SHARED
@@ -24,8 +21,12 @@ typedef struct {
 } ShellSchedSharedMemData;
 
 int shell_sched_init_shared_memory();
-void shell_sched_write_shared_memory(int shared_memory_id, ShellSchedSharedMemData* data);
-ShellSchedSharedMemData shell_sched_read_shared_memory(int shared_memory_id);
-int shell_sched_get_shared_memory();
+void shell_sched_destroy_shared_memory();
+
+ShellSchedSharedMemData* shell_sched_attach_shared_memory();
+void shell_sched_dettach_shared_memory(ShellSchedSharedMemData* memory);
+
+void shell_sched_write_shared_memory(ShellSchedSharedMemData* memory, ShellSchedSharedMemData data);
+ShellSchedSharedMemData shell_sched_read_shared_memory(ShellSchedSharedMemData* memory);
 
 #endif

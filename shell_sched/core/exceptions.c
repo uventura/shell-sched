@@ -11,6 +11,8 @@ void shell_sched_check_scanf_result(int result) {
 }
 
 void shell_sched_throw_execution_error(const char* error_message, ...) {
+    perror("Shared memory failed");
+
     va_list args;
     va_start(args, error_message);
     vprintf(error_message, args);

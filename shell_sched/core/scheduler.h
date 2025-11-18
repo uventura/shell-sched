@@ -3,7 +3,6 @@
 
 #include "shell_sched/core/common.h"
 
-#include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
@@ -16,6 +15,7 @@ typedef struct {
     key_t key;
     int flags;
     int queues;
+    pid_t parent;
 } ShellSchedScheduler;
 
 void shell_sched_init_scheduler();

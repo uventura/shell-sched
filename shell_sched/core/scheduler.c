@@ -2,16 +2,28 @@
 #include "shell_sched/core/common.h"
 #include "shell_sched/core/process.h"
 #include "shell_sched/core/exceptions.h"
+#include "shell_sched/core/shared.h"
 
-#include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+
+#define _POSIX_C_SOURCE 200809L
+#define __USE_POSIX 200809L
+#include <signal.h>
 
 ShellSchedScheduler scheduler;
 
-void execute_process_scheduler();
+void execute_process_scheduler(void);
+void continue_parent_process(void);
 
 void shell_sched_init_scheduler() {
+    printf("Starting...\n");
+    ShellSchedSharedMemData data = shell_sched_read_shared_memory();
+
+    scheduler.queues = data.i32;
     if(scheduler.queues <= 0 || scheduler.queues > 3) {
         shell_sched_throw_execution_error("[ShellSchedError] The number of queues can be 2 or 3.\n");
         return;
@@ -20,6 +32,7 @@ void shell_sched_init_scheduler() {
     scheduler.key = SCHEDULER_DEFAULT_ID;
     scheduler.flags = SCHEDULER_DEFAULT_FLAGS;
     scheduler.id = msgget(scheduler.key, scheduler.flags);
+    scheduler.parent = getppid();
 
     if(scheduler.id < 0) {
         int saved_errno = errno;
@@ -40,6 +53,7 @@ void shell_sched_init_scheduler() {
     }
 
     scheduler.started = true;
+    continue_parent_process();
 }
 
 void shell_sched_run_scheduler() {
@@ -67,7 +81,7 @@ void shell_sched_destroy_scheduler() {
 }
 
 
-void execute_process_scheduler() {
+void execute_process_scheduler(void) {
     if(!scheduler.started) {
         shell_sched_throw_execution_error("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
         exit(-1);
@@ -87,4 +101,12 @@ void execute_process_scheduler() {
     // }
 
     // printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
+    continue_parent_process();
+}
+
+void continue_parent_process(void) {
+    int signal_result = kill(scheduler.parent, SIGCONT);
+    if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
+        shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
+    }
 }
