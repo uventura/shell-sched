@@ -102,6 +102,7 @@ void execute_process(void) {
     data.process = process;
     shell_sched_write_shared_memory(run_shared_memory, data);
 
+    
     wait_scheduler_finish_action();
 }
 

@@ -21,13 +21,14 @@ ShellSchedSharedMemData* scheduler_shared_memory;
 ShellSchedScheduler scheduler;
 
 void init_scheduler_queues(void);
-void execute_process_scheduler(void);
+void execute_process_scheduler(int signal);
 void continue_parent_process(void);
 void destroy_scheduler(int signal);
 
 void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
     signal(SIGQUIT, destroy_scheduler);
+    signal(SIGUSR1, execute_process_scheduler);
 
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
@@ -56,6 +57,7 @@ void shell_sched_run_scheduler() {
 void destroy_scheduler(int signal) {
     if(scheduler.started) {
         shell_sched_dettach_shared_memory(scheduler_shared_memory);
+        shell_sched_process_queue_free(scheduler.process_queue);
     }
 
     printf("Scheduler destroyed.\n");
@@ -68,7 +70,7 @@ void init_scheduler_queues(void) {
     }
 }
 
-void execute_process_scheduler(void) {
+void execute_process_scheduler(int signal) {
     if(!scheduler.started) {
         shell_sched_throw_execution_error("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
         exit(-1);
