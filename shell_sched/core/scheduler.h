@@ -18,4 +18,8 @@ typedef struct {
     int queues;
 } ShellSchedScheduler;
 
+void shell_sched_init_scheduler();
+void shell_sched_run_scheduler();
+void shell_sched_destroy_scheduler();
+
 #endif
