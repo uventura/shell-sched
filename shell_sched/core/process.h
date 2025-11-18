@@ -7,20 +7,26 @@
 
 #define SHELL_SCHED_CMD_MAX 4096
 
-// typedef struct {
-//     int pid;
-//     int remaining;
-// } ShellSchedProcess;
-
 typedef struct {
     int priority;
     char command[SHELL_SCHED_CMD_MAX];
 } ShellSchedNewProcess;
 
-typedef struct {
+typedef struct SchedProcess {
     int pid;
     int remaining;
     int priority;
+    struct SchedProcess* next;
 } ShellSchedProcess;
+
+typedef struct {
+    int size;
+    ShellSchedProcess* front;
+} ShellSchedProcessQueue;
+
+void shell_sched_process_queue_init(ShellSchedProcessQueue* queue);
+void shell_sched_process_queue_free(ShellSchedProcessQueue* queue);
+void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedProcess* process);
+ShellSchedProcessQueue* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue);
 
 #endif
