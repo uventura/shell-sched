@@ -30,7 +30,7 @@ void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
     signal(SIGQUIT, destroy_scheduler);
     signal(SIGINT, execute_process_scheduler);
-    signal(SIGRTMIN, execute_process_scheduler);   // handle queued realtime signals
+    signal(SIGRTMIN, execute_process_scheduler);
 
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
@@ -41,11 +41,11 @@ void shell_sched_init_scheduler() {
         return;
     }
 
-    printf("%d\n", scheduler.queues);
-
     init_scheduler_queues();
     scheduler.started = true;
+    scheduler.parent = getppid();
     printf("Scheduler started.\n");
+
     continue_parent_process();
 }
 
@@ -56,9 +56,8 @@ void shell_sched_run_scheduler() {
         // Round Robin
         //----------------------
         sleep(SCHEDULER_QUANTUM);
-        printf("\n<Running>\n");
+        // printf("\n<Running>\n");
     }
-    printf("End of scheduler!\n");
     exit(SHELL_SCHED_FINISHED);
 }
 
@@ -70,7 +69,6 @@ void execute_process_scheduler(int signal) {
 
     printf("Type: %d\n", scheduler_shared_memory->type);
     continue_parent_process();
-    printf("Done!\n");
 }
 
 void destroy_scheduler(int signal) {
@@ -90,14 +88,8 @@ void init_scheduler_queues(void) {
 }
 
 void continue_parent_process(void) {
-    ShellSchedMessage msg;
-    msg.type = 1;
-    strcpy(msg.text, "scheduler-ready");
-
-    int msgid = shell_sched_get_msg();
-    if (msgid < 0) {
-        shell_sched_throw_execution_error("[ShellSchedError] Could not get message queue id.\n");
+    int signal_result = kill(scheduler.parent, SIGRTMIN);
+    if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
+        shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
     }
-
-    shell_sched_snd(msgid, &msg);
 }

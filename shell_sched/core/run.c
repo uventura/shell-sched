@@ -29,8 +29,8 @@ int run_msg_queue_id = -1;
 pid_t scheduler_pid;
 bool scheduler_started = false;
 
-// sigset_t scheduler_set;
-// int scheduler_sig;
+sigset_t scheduler_set;
+int scheduler_sig;
 
 void user_scheduler(void);
 void execute_process(void);
@@ -43,6 +43,10 @@ void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
     scheduler_started = false;
+
+    sigemptyset(&scheduler_set);
+    sigaddset(&scheduler_set, SIGRTMIN);
+    sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
@@ -87,10 +91,8 @@ void user_scheduler(void) {
     if(scheduler_pid < 0) {
         printf("[ShellSchedError] The user scheduler couldn't be started.");
     } else if(scheduler_pid == CHILD_PROCESS) {
-        // signal(SIGINT, SIG_DFL);
         shell_sched_init_scheduler();
         shell_sched_run_scheduler();
-        printf("End of run\n");
     } else {
         scheduler_started = true;
         printf("Scheduler started.\n");
@@ -109,16 +111,7 @@ void execute_process(void) {
     data.process = process;
     shell_sched_write_shared_memory(run_shared_memory, data);
 
-    int rc = kill(scheduler_pid, SIGINT);
-    if (rc < 0) {
-        perror("kill");
-        if (errno == ESRCH) {
-            fprintf(stderr, "scheduler PID %d does not exist\n", (int)scheduler_pid);
-        } else if (errno == EPERM) {
-            fprintf(stderr, "no permission to signal PID %d\n", (int)scheduler_pid);
-        }
-    }
-    printf("Signal called\n");
+    kill(scheduler_pid, SIGINT);
     wait_scheduler_finish_action();
 }
 
@@ -153,15 +146,5 @@ void continue_after_scheduler_signal(int signal) {
 }
 
 void wait_scheduler_finish_action(void) {
-    ShellSchedMessage msg;
-
-    if (run_msg_queue_id < 0) {
-        run_msg_queue_id = shell_sched_get_msg();
-        if (run_msg_queue_id < 0) {
-            shell_sched_throw_execution_error("[ShellSchedError] Could not get message queue id.\n");
-        }
-    }
-
-    shell_sched_rcv(run_msg_queue_id, &msg);
-    printf("%s\n", msg.text);
+    sigwait(&scheduler_set, &scheduler_sig);
 }
