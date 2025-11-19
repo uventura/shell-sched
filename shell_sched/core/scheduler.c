@@ -134,10 +134,12 @@ void execute_process_scheduler(int signal) {
         if (process->priority < 0 || process->priority >= scheduler.queues) {
             process->priority = scheduler.queues - 1;
         }
-        printf("Process priority adjusted to %d\n", process->priority);
+
         shell_sched_process_queue_push(&scheduler.process_queue[process->priority], process);
         printf("[Scheduler] Added PID=%d to queue %d\n", pid, process->priority);
     }
+
+    printf("\n");
     continue_parent_process();
 }
 
