@@ -7,4 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#define SHELL_SCHED_FINISHED 0
+#define SHELL_SCHED_SUCCESSFULL_REQUEST 0
+
 #endif

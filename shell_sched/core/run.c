@@ -3,17 +3,32 @@
 #include "shell_sched/core/scheduler.h"
 #include "shell_sched/core/process.h"
 #include "shell_sched/core/exceptions.h"
+#include "shell_sched/core/shared.h"
 
+#include <unistd.h>
+#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/wait.h>
+
+#define _POSIX_C_SOURCE 200809L
+// #define __USE_POSIX 200809L
+#include <signal.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
 #define STR_EQUAL 0
+#define CHILD_PROCESS 0
 
-// QUESTIONS: São vários schedulers ou apenas um?
-ShellSchedScheduler scheduler;
+int run_share_memory_id;
+ShellSchedSharedMemData* run_shared_memory;
+
+pid_t scheduler_pid;
+bool scheduler_started = false;
+
+sigset_t scheduler_set;
+int scheduler_sig;
 
 void user_scheduler(void);
 void execute_process(void);
@@ -21,8 +36,18 @@ void list_scheduler(void);
 void exit_scheduler(void);
 void help_scheduler(void);
 
+void continue_after_scheduler_signal(int signal);
+void wait_scheduler_finish_action(void);
+
 void shell_sched_run() {
-    scheduler.started = false;
+    scheduler_started = false;
+
+    sigemptyset(&scheduler_set);
+    sigaddset(&scheduler_set, SIGRTMIN);
+    sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
+
+    shell_sched_init_shared_memory();
+    run_shared_memory = shell_sched_attach_shared_memory();
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -50,65 +75,40 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
-    shell_sched_check_scanf_result(scanf("%d", &scheduler.queues));
-    if(scheduler.queues <= 0 || scheduler.queues > 3) {
-        printf("[ShellSchedError] The number of queues can be 2 or 3.\n");
-        return;
+    int scheduler_queues;
+    shell_sched_check_scanf_result(scanf("%d", &scheduler_queues));
+
+    ShellSchedSharedMemData data;
+    data.type = INT_SHARED;
+    data.i32 = scheduler_queues;
+
+    shell_sched_write_shared_memory(run_shared_memory, data);
+
+    scheduler_pid = fork();
+    if(scheduler_pid < 0) {
+        printf("[ShellSchedError] The user scheduler couldn't be started.");
+    } else if(scheduler_pid == CHILD_PROCESS) {
+        shell_sched_init_scheduler();
+        shell_sched_run_scheduler();
+    } else {
+        scheduler_started = true;
     }
 
-    scheduler.key = SCHEDULER_DEFAULT_ID;
-    scheduler.flags = SCHEDULER_DEFAULT_FLAGS;
-    scheduler.id = msgget(scheduler.key, scheduler.flags);
-
-    if(scheduler.id < 0) {
-        int saved_errno = errno;
-        perror("[ShellSchedError] msgget");
-        // fallback, create a private queue to bypass bad-perm queues
-        if(saved_errno == EACCES) {
-            scheduler.id = msgget(IPC_PRIVATE, SCHEDULER_DEFAULT_FLAGS);
-            if(scheduler.id < 0) {
-                perror("[ShellSchedError] msgget(IPC_PRIVATE)");
-                printf("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
-                return;
-            }
-            printf("[Warn] Using a private message queue (id=%d) due to permission issues on the default key.\n", scheduler.id);
-        } else {
-            printf("[ShellSchedError] The scheduler queue couldn't be created.\n\n");
-            return;
-        }
-    }
-
-    scheduler.started = true;
-    printf("Scheduler queue created.\n\n");
+    wait_scheduler_finish_action();
+    printf("\n");
 }
 
 void execute_process(void) {
-    if(!scheduler.started) {
-        printf("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
-        return;
-    }
+    ShellSchedNewProcess process;
+    shell_sched_check_scanf_result(scanf("%s %d", process.command, &process.priority));
 
-    // build and send a NEW_PROCESS message to the scheduler queue
-    ShellSchedMsgNewProcess msg;
-    msg.mtype = SHELL_SCHED_MSG_NEW_PROCESS;
+    ShellSchedSharedMemData data;
+    data.type = NEW_PROCESS_SHARED;
+    data.process = process;
+    shell_sched_write_shared_memory(run_shared_memory, data);
 
-    // read command (single token) and priority directly into the message
-    shell_sched_check_scanf_result(scanf("%s %d", msg.command, &msg.priority));
-
-    if(msg.priority < 1 || msg.priority > scheduler.queues) {
-        printf("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n\n", scheduler.queues);
-        return;
-    }
-
-    size_t msgsz = sizeof(ShellSchedMsgNewProcess) - sizeof(long);
-    int send_result = msgsnd(scheduler.id, &msg, msgsz, 0);
-    if(send_result == -1) {
-        perror("[ShellSchedError] msgsnd");
-        printf("[ShellSchedError] Failed to enqueue process request (qid=%d).\n\n", scheduler.id);
-        return;
-    }
-
-    printf("[Info] Process request submitted: command='%s', priority=%d.\n\n", msg.command, msg.priority);
+    kill(scheduler_pid, SIGUSR1);
+    wait_scheduler_finish_action();
 }
 
 void list_scheduler(void) {
@@ -116,25 +116,11 @@ void list_scheduler(void) {
 }
 
 void exit_scheduler(void) {
-    if(scheduler.started) {
-        struct msqid_ds removed_queue_result;
-        int remove_result = msgctl(scheduler.id, IPC_RMID, &removed_queue_result);
-
-        if(remove_result == -1) {
-            printf("[ShellSchedError] The queue couldn't be removed.\n");
-            exit(SHELL_SCHED_EXIT_FAILURE);
-        }
-
-        printf("[Scheduler Info]\n");
-        printf("| msg_stime = %ld\n", removed_queue_result.msg_stime);
-        printf("| msg_rtime = %ld\n", removed_queue_result.msg_rtime);
-        printf("| msg_ctime = %ld\n", removed_queue_result.msg_ctime);
-        printf("| msg_qnum = %ld\n", removed_queue_result.msg_qnum);
-        printf("| msg_qbytes = %ld\n", removed_queue_result.msg_qbytes);
-        printf("| msg_lspid = %d\n", removed_queue_result.msg_lspid);
-        printf("| msg_lrpid = %d\n\n", removed_queue_result.msg_lrpid);
+    if(scheduler_started) {
+        kill(scheduler_pid, SIGQUIT);
+        wait(NULL);
     }
-
+    shell_sched_destroy_shared_memory();
     printf("Bye! :)\n");
 }
 
@@ -149,4 +135,13 @@ void help_scheduler(void) {
     printf("| exit_scheduler                          | Exit scheduler\n");
     printf("| help                                    | To get available commands.\n");
     printf("====================================\n");
+}
+
+void continue_after_scheduler_signal(int signal) {
+    printf("Continue called\n");
+}
+
+void wait_scheduler_finish_action(void) {
+    // Wait a signal which means that the process has been finished.
+    sigwait(&scheduler_set, &scheduler_sig);
 }

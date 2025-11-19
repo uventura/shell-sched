@@ -5,28 +5,28 @@
 
 #include <sys/types.h>
 
-#define SHELL_SCHED_CMD_MAX 256
-
-typedef enum {
-    SHELL_SCHED_MSG_NEW_PROCESS = 1,
-    SHELL_SCHED_MSG_LIST_REQUEST = 2,
-    SHELL_SCHED_MSG_EXIT_REQUEST = 3
-} ShellSchedMsgType;
+#define SHELL_SCHED_CMD_MAX 4096
 
 typedef struct {
+    int priority;
+    char command[SHELL_SCHED_CMD_MAX];
+} ShellSchedNewProcess;
+
+typedef struct SchedProcess {
     int pid;
     int remaining;
+    int priority;
+    struct SchedProcess* next;
 } ShellSchedProcess;
 
 typedef struct {
-    long mtype; // must be first for System V IPC
-    int priority; // 1 is highest
-    char command[SHELL_SCHED_CMD_MAX];
-} ShellSchedMsgNewProcess;
+    int size;
+    ShellSchedProcess* front;
+} ShellSchedProcessQueue;
 
-typedef union {
-    long mtype;
-    ShellSchedMsgNewProcess newProcess;
-} ShellSchedMessage;
+void shell_sched_process_queue_init(ShellSchedProcessQueue* queue);
+void shell_sched_process_queue_free(ShellSchedProcessQueue* queue);
+void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedProcess* process);
+ShellSchedProcess* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue);
 
 #endif
