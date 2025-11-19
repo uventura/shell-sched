@@ -26,6 +26,7 @@ int run_msg_queue_id = -1;
 
 pid_t scheduler_pid;
 bool scheduler_started = false;
+int scheduler_queues;
 
 sigset_t scheduler_set;
 int scheduler_sig;
@@ -47,8 +48,6 @@ void shell_sched_run() {
     sigemptyset(&scheduler_set);
     sigaddset(&scheduler_set, SIGRTMIN);
     sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
-
-    signal(SIGUSR2, sleep_until_scheduler_signal);
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
@@ -80,7 +79,11 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
-    int scheduler_queues;
+    if(scheduler_started) {
+        printf("[ShellSchedError] The scheduler is already started. Exit scheduler first.\n");
+        return;
+    }
+
     shell_sched_check_scanf_result(scanf("%d", &scheduler_queues));
 
     ShellSchedSharedMemData data;
@@ -109,6 +112,11 @@ void execute_process(void) {
 
     ShellSchedNewProcess process;
     shell_sched_check_scanf_result(scanf("%s %d", process.command, &process.priority));
+
+    if(process.priority < 1 || process.priority > scheduler_queues) {
+        printf("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n", scheduler_queues);
+        return;
+    }
 
     ShellSchedSharedMemData data;
     data.type = NEW_PROCESS_SHARED;

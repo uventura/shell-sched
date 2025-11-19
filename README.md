@@ -32,3 +32,14 @@ After starting, the available commands are:
 ```shell
 > shell_sched: exit_scheduler
 ```
+
+---------------------------------
+### Create Example
+```shell
+make examples
+```
+
+### Run Examples
+```shell
+> shell_sched: execute_process out/test/test01 <priority>
+```

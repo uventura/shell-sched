@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 
 #define _POSIX_C_SOURCE 200809L
 // #define __USE_POSIX 200809L
@@ -30,8 +31,8 @@ void list_scheduler_processes(int signal);
 void continue_parent_process(void);
 void destroy_scheduler(int signal);
 
-static ShellSchedProcess* scheduler_pick_next(void);
-static void scheduler_requeue_process(ShellSchedProcess* p);
+ShellSchedProcess* scheduler_pick_next(void);
+void scheduler_requeue_process(ShellSchedProcess* p);
 
 void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
@@ -52,6 +53,7 @@ void shell_sched_init_scheduler() {
     init_scheduler_queues();
     scheduler.started = true;
     scheduler.parent = getppid();
+    scheduler.running_process = NULL;
     printf("Scheduler started.\n");
 
     continue_parent_process();
@@ -61,12 +63,14 @@ void shell_sched_run_scheduler() {
     printf("Running scheduler...\n");
 
     while(RUNNING) {
-        ShellSchedProcess* process = scheduler_pick_next();
-        if (!process) {
+        scheduler.running_process = scheduler_pick_next();
+        if (!scheduler.running_process) {
+            // Empty queue, wait for new processes
             sleep(1);
             continue;
         }
 
+        ShellSchedProcess* process = scheduler.running_process;
         printf("[Scheduler] Running PID=%d (prio=%d)\n", process->pid, process->priority);
         if (kill(process->pid, 0) == -1 && errno == ESRCH) {
             printf("[Scheduler] PID %d no longer exists.\n", process->pid);
@@ -110,6 +114,9 @@ void execute_process_scheduler(int signal) {
             execl("/bin/sh", "sh", "-c", new_process.command, NULL);
             perror("[Scheduler] exec failed");
             exit(1);
+        } else {
+            // Start paused
+            kill(pid, SIGSTOP);
         }
 
         ShellSchedProcess* process = malloc(sizeof(ShellSchedProcess));
@@ -120,14 +127,14 @@ void execute_process_scheduler(int signal) {
         }
 
         process->pid = pid;
-        process->priority = new_process.priority;
+        process->priority = new_process.priority - 1;
         process->remaining = 0;
         process->next = NULL;
 
         if (process->priority < 0 || process->priority >= scheduler.queues) {
             process->priority = scheduler.queues - 1;
         }
-
+        printf("Process priority adjusted to %d\n", process->priority);
         shell_sched_process_queue_push(&scheduler.process_queue[process->priority], process);
         printf("[Scheduler] Added PID=%d to queue %d\n", pid, process->priority);
     }
@@ -135,10 +142,11 @@ void execute_process_scheduler(int signal) {
 }
 
 void list_scheduler_processes(int signal) {
-    printf("Scheduler processes:\n");
+    printf("\n[Scheduled processes]\n");
     for (int i = 0; i < scheduler.queues; ++i) {
         ShellSchedProcessQueue* queue = &scheduler.process_queue[i];
-        printf("Queue %d (size=%d): ", i, queue->size);
+        printf("| Queue %d (size=%d): ", i, queue->size);
+
         ShellSchedProcess* current = queue->front;
         while (current) {
             printf("[PID=%d, prio=%d] -> ", current->pid, current->priority);
@@ -146,6 +154,14 @@ void list_scheduler_processes(int signal) {
         }
         printf("NULL\n");
     }
+
+    printf("\n[Running process]");
+    if (scheduler.running_process) {
+        printf(" [PID=%d, prio=%d]\n", scheduler.running_process->pid, scheduler.running_process->priority);
+    } else {
+        printf("| NULL\n");
+    }
+    printf("---------------------------------------------\n\n");
 
     continue_parent_process();
 }
@@ -159,6 +175,7 @@ void destroy_scheduler(int signal) {
             ShellSchedProcessQueue* queue = &scheduler.process_queue[i];
             while (queue->size > 0) {
                 ShellSchedProcess* process = shell_sched_process_queue_pop(queue);
+                kill(process->pid, SIGTERM);
                 if(process) free(process);
             }
             shell_sched_process_queue_free(queue);
@@ -182,7 +199,7 @@ void continue_parent_process(void) {
     }
 }
 
-static ShellSchedProcess* scheduler_pick_next(void) {
+ShellSchedProcess* scheduler_pick_next(void) {
     for (int i = 0; i < scheduler.queues; ++i) {
         ShellSchedProcessQueue* q = &scheduler.process_queue[i];
         if (q->size > 0) {
@@ -192,7 +209,7 @@ static ShellSchedProcess* scheduler_pick_next(void) {
     return NULL;
 }
 
-static void scheduler_requeue_process(ShellSchedProcess* p) {
+void scheduler_requeue_process(ShellSchedProcess* p) {
     if (!p) return;
     int prio = p->priority;
 
@@ -201,4 +218,3 @@ static void scheduler_requeue_process(ShellSchedProcess* p) {
     }
     shell_sched_process_queue_push(&scheduler.process_queue[prio], p);
 }
-

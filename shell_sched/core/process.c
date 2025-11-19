@@ -23,6 +23,7 @@ void shell_sched_process_queue_free(ShellSchedProcessQueue* queue) {
 void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedProcess* process) {
     ShellSchedProcess* current = queue->front;
     if(current == NULL) {
+        queue->size += 1;
         queue->front = process;
         return;
     }
@@ -32,6 +33,7 @@ void shell_sched_process_queue_push(ShellSchedProcessQueue* queue, ShellSchedPro
         current = current->next;
     }
     current->next = process;
+    queue->size += 1;
 }
 
 ShellSchedProcess* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue) {
@@ -41,7 +43,9 @@ ShellSchedProcess* shell_sched_process_queue_pop(ShellSchedProcessQueue* queue) 
 
     ShellSchedProcess* pop = queue->front;
     queue->front = queue->front->next;
+    queue->size -= 1;
 
+    pop->next = NULL;
     return pop;
 }
 
