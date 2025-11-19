@@ -107,6 +107,9 @@ void execute_process(void) {
     data.type = NEW_PROCESS_SHARED;
     data.process = process;
     shell_sched_write_shared_memory(run_shared_memory, data);
+    printf("\n A MEMORIA É");
+    printf("%d",run_shared_memory->type);
+    printf("\n");
 
     kill(scheduler_pid, SIGUSR1);
     // wait_scheduler_finish_action();
