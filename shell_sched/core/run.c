@@ -13,7 +13,7 @@
 #include <sys/wait.h>
 
 #define _POSIX_C_SOURCE 200809L
-#define __USE_POSIX 200809L
+// #define __USE_POSIX 200809L
 #include <signal.h>
 
 #define RUNNING 1
@@ -27,6 +27,9 @@ ShellSchedSharedMemData* run_shared_memory;
 pid_t scheduler_pid;
 bool scheduler_started = false;
 
+sigset_t scheduler_set;
+int scheduler_sig;
+
 void user_scheduler(void);
 void execute_process(void);
 void list_scheduler(void);
@@ -38,11 +41,13 @@ void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
     scheduler_started = false;
-    signal(SIGCONT, continue_after_scheduler_signal);
+
+    sigemptyset(&scheduler_set);
+    sigaddset(&scheduler_set, SIGRTMIN);
+    sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
-
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -102,7 +107,7 @@ void execute_process(void) {
     data.process = process;
     shell_sched_write_shared_memory(run_shared_memory, data);
 
-    
+    kill(scheduler_pid, SIGUSR1);
     wait_scheduler_finish_action();
 }
 
@@ -132,9 +137,11 @@ void help_scheduler(void) {
     printf("====================================\n");
 }
 
-void continue_after_scheduler_signal(int signal) {}
+void continue_after_scheduler_signal(int signal) {
+    printf("Continue called\n");
+}
 
 void wait_scheduler_finish_action(void) {
-    // Wait a signal which means that the process has been registered.
-    pause();
+    // Wait a signal which means that the process has been finished.
+    sigwait(&scheduler_set, &scheduler_sig);
 }

@@ -11,7 +11,7 @@
 #include <sys/types.h>
 
 #define _POSIX_C_SOURCE 200809L
-#define __USE_POSIX 200809L
+// #define __USE_POSIX 200809L
 #include <signal.h>
 
 #define SCHEDULER_QUANTUM 20
@@ -54,6 +54,17 @@ void shell_sched_run_scheduler() {
     exit(SHELL_SCHED_FINISHED);
 }
 
+void execute_process_scheduler(int signal) {
+    if(!scheduler.started) {
+        shell_sched_throw_execution_error("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
+        exit(-1);
+    }
+
+    printf("Type: %d\n", scheduler_shared_memory->type);
+
+    continue_parent_process();
+}
+
 void destroy_scheduler(int signal) {
     if(scheduler.started) {
         shell_sched_dettach_shared_memory(scheduler_shared_memory);
@@ -70,17 +81,9 @@ void init_scheduler_queues(void) {
     }
 }
 
-void execute_process_scheduler(int signal) {
-    if(!scheduler.started) {
-        shell_sched_throw_execution_error("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
-        exit(-1);
-    }
-
-    continue_parent_process();
-}
-
 void continue_parent_process(void) {
-    int signal_result = kill(scheduler.parent, SIGCONT);
+    int signal_result = kill(scheduler.parent, SIGRTMIN);
+    printf("Continue process called.\n");
     if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
         shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
     }

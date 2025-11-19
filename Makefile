@@ -9,6 +9,7 @@ FLAGS += -Wno-unused-parameter
 FLAGS += -Wno-error=unused-result
 FLAGS += -Wno-implicit-fallthrough
 FLAGS += -std=c11
+FLAGS += -D_POSIX_C_SOURCE=200809L
 
 RELEASE_FLAGS += $(FLAGS)
 RELEASE_FLAGS += -O0
