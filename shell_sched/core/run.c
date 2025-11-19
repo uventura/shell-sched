@@ -17,10 +17,8 @@
 #include <signal.h>
 #include <sys/msg.h>
 
-#define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
 #define STR_EQUAL 0
-#define CHILD_PROCESS 0
 
 int run_share_memory_id;
 ShellSchedSharedMemData* run_shared_memory;
@@ -28,6 +26,7 @@ int run_msg_queue_id = -1;
 
 pid_t scheduler_pid;
 bool scheduler_started = false;
+int scheduler_queues;
 
 sigset_t scheduler_set;
 int scheduler_sig;
@@ -37,8 +36,10 @@ void execute_process(void);
 void list_scheduler(void);
 void exit_scheduler(void);
 void help_scheduler(void);
+int use_scheduler_warning(void);
 
 void continue_after_scheduler_signal(int signal);
+void sleep_until_scheduler_signal(int signal);
 void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
@@ -78,7 +79,11 @@ void shell_sched_run() {
 }
 
 void user_scheduler(void) {
-    int scheduler_queues;
+    if(scheduler_started) {
+        printf("[ShellSchedError] The scheduler is already started. Exit scheduler first.\n");
+        return;
+    }
+
     shell_sched_check_scanf_result(scanf("%d", &scheduler_queues));
 
     ShellSchedSharedMemData data;
@@ -103,8 +108,15 @@ void user_scheduler(void) {
 }
 
 void execute_process(void) {
+    if(use_scheduler_warning()) return;
+
     ShellSchedNewProcess process;
     shell_sched_check_scanf_result(scanf("%s %d", process.command, &process.priority));
+
+    if(process.priority < 1 || process.priority > scheduler_queues) {
+        printf("[ShellSchedError] Invalid priority. It must be between 1 and %d.\n", scheduler_queues);
+        return;
+    }
 
     ShellSchedSharedMemData data;
     data.type = NEW_PROCESS_SHARED;
@@ -116,7 +128,10 @@ void execute_process(void) {
 }
 
 void list_scheduler(void) {
-    // TODO
+    if(use_scheduler_warning()) return;
+
+    kill(scheduler_pid, SIGUSR1);
+    wait_scheduler_finish_action();
 }
 
 void exit_scheduler(void) {
@@ -147,4 +162,17 @@ void continue_after_scheduler_signal(int signal) {
 
 void wait_scheduler_finish_action(void) {
     sigwait(&scheduler_set, &scheduler_sig);
+}
+
+void sleep_until_scheduler_signal(int signal) {
+    wait_scheduler_finish_action();
+}
+
+int use_scheduler_warning(void) {
+    if(!scheduler_started) {
+        printf("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
+        return 1;
+    }
+
+    return 0;
 }

@@ -16,6 +16,7 @@ typedef struct SchedProcess {
     int pid;
     int remaining;
     int priority;
+    int output_pipe[2];
     struct SchedProcess* next;
 } ShellSchedProcess;
 

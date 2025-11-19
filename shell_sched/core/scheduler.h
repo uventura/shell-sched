@@ -15,6 +15,7 @@ typedef struct {
     bool started;
     pid_t parent;
     int queues;
+    ShellSchedProcess* running_process;
     ShellSchedProcessQueue process_queue[SCHEDULER_MAX_QUEUES];
 } ShellSchedScheduler;
 
