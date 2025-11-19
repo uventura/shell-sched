@@ -15,7 +15,7 @@
 // #define __USE_POSIX 200809L
 #include <signal.h>
 
-#define SCHEDULER_QUANTUM 5
+#define SCHEDULER_QUANTUM 20
 #define NEW_PROCESS_ERROR -1
 
 int scheduler_shared_memory_id;
@@ -80,7 +80,6 @@ void shell_sched_run_scheduler() {
         } else {
             scheduler_requeue_process(process);
         }
-        // sleep(SCHEDULER_QUANTUM);
     }
     exit(SHELL_SCHED_FINISHED);
 }

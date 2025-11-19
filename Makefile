@@ -22,6 +22,7 @@ DEBUG_DIR = $(OUT_DIR)/debug
 
 DEBUG_BIN_DIR = $(DEBUG_DIR)/bin
 RELEASE_BIN_DIR = $(RELEASE_DIR)/bin
+RELEASE_LOG_DIR = $(RELEASE_DIR)/logs
 SRC_DIR = shell_sched
 SRC = $(shell find $(SRC_DIR) -name '*.c')
 
@@ -33,6 +34,7 @@ OBJS_DEBUG=$(patsubst $(SRC_DIR)/%.c,$(OBJ_DEBUG_DIR)/%.o, $(SRC))
 
 $(TARGET): $(OBJS_RELEASE)
 	@mkdir -p $(RELEASE_BIN_DIR)
+	@mkdir -p $(RELEASE_LOG_DIR)
 	$(CC) -o $(RELEASE_BIN_DIR)/$@ $^ $(RELEASE_FLAGS) -I .
 
 $(OBJ_RELEASE_DIR)/%.o: $(SRC_DIR)/%.c
@@ -45,11 +47,11 @@ $(OBJ_DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 
 release: $(TARGET)
 
-test:
+example:
 	@echo "Building test cases..."
 	@mkdir -p out/test
-	gcc test/test01.c -o out/test/test01
-	gcc test/test02.c -o out/test/test02
+	$(CC) test/test01.c -o out/test/test01
+	$(CC) test/test02.c -o out/test/test02
 
 clean:
 	@echo "Clean up environment..."
