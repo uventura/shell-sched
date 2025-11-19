@@ -67,7 +67,6 @@ void execute_process_scheduler(int signal) {
     printf("Type: %d\n", scheduler_shared_memory->type);
 
     continue_parent_process();
-    exit(0);
 }
 
 void destroy_scheduler(int signal) {
