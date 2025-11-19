@@ -4,17 +4,11 @@ FLAGS = -W
 FLAGS += -Wall
 FLAGS += -Werror
 FLAGS += -pedantic
-FLAGS += -g
 FLAGS += -Wno-unused-parameter
 FLAGS += -Wno-error=unused-result
 FLAGS += -Wno-implicit-fallthrough
-FLAGS += -std=c11
-FLAGS += -D_POSIX_C_SOURCE=200809L
 
 RELEASE_FLAGS += $(FLAGS)
-RELEASE_FLAGS += -O0
-RELEASE_FLAGS += -DRELEASE_MODE
-RELEASE_FLAGS += -lc
 
 DEBUG_FLAGS += $(FLAGS)
 DEBUG_FLAGS += -DENABLE_DEBUG
@@ -28,7 +22,6 @@ DEBUG_DIR = $(OUT_DIR)/debug
 
 DEBUG_BIN_DIR = $(DEBUG_DIR)/bin
 RELEASE_BIN_DIR = $(RELEASE_DIR)/bin
-
 SRC_DIR = shell_sched
 SRC = $(shell find $(SRC_DIR) -name '*.c')
 

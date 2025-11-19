@@ -12,9 +12,10 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-#define _POSIX_C_SOURCE 200809L
+// #define _POSIX_C_SOURCE 200809L
 // #define __USE_POSIX 200809L
 #include <signal.h>
+#include <sys/msg.h>
 
 #define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
@@ -23,6 +24,7 @@
 
 int run_share_memory_id;
 ShellSchedSharedMemData* run_shared_memory;
+int run_msg_queue_id = -1;
 
 pid_t scheduler_pid;
 bool scheduler_started = false;
@@ -42,14 +44,14 @@ void wait_scheduler_finish_action(void);
 void shell_sched_run() {
     scheduler_started = false;
 
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     sigemptyset(&scheduler_set);
     sigaddset(&scheduler_set, SIGRTMIN);
     sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
+
+    run_msg_queue_id = shell_sched_init_msg();
 
     while(RUNNING) {
         printf("> shell_sched: ");
@@ -93,6 +95,7 @@ void user_scheduler(void) {
         shell_sched_run_scheduler();
     } else {
         scheduler_started = true;
+        printf("Scheduler started.\n");
     }
 
     wait_scheduler_finish_action();
@@ -108,8 +111,8 @@ void execute_process(void) {
     data.process = process;
     shell_sched_write_shared_memory(run_shared_memory, data);
 
-    kill(scheduler_pid, SIGUSR1);
-    // wait_scheduler_finish_action();
+    kill(scheduler_pid, SIGINT);
+    wait_scheduler_finish_action();
 }
 
 void list_scheduler(void) {
@@ -139,12 +142,9 @@ void help_scheduler(void) {
 }
 
 void continue_after_scheduler_signal(int signal) {
-    printf("Continue called\n");
+    printf("Continue called %d\n", getpid());
 }
 
 void wait_scheduler_finish_action(void) {
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // Wait a signal which means that the process has been finished.
     sigwait(&scheduler_set, &scheduler_sig);
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 }
