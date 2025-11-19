@@ -29,6 +29,7 @@ int shell_sched_init_msg();
 void shell_sched_destroy_msg();
 int shell_sched_get_msg();
 void shell_sched_snd(int id, ShellSchedMessage* msg);
+void shell_sched_rcv(int id, ShellSchedMessage* msg);
 
 int shell_sched_init_shared_memory();
 void shell_sched_destroy_shared_memory();

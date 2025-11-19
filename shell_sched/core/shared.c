@@ -4,6 +4,7 @@
 
 #include <sys/mman.h>
 #include <sys/ipc.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <sys/msg.h>
 
@@ -44,6 +45,17 @@ void shell_sched_snd(int id, ShellSchedMessage* msg) {
     }
     if (msgsnd(id, msg, sizeof(msg->text), 0) < 0) {
         shell_sched_throw_execution_error("[ShellSchedError] Failed to send message.\n");
+    }
+}
+
+void shell_sched_rcv(int id, ShellSchedMessage* msg) {
+    if (id < 0 || msg == NULL) {
+        shell_sched_throw_execution_error("[ShellSchedError] Invalid args to shell_sched_rcv.\n");
+    }
+
+    ssize_t received = msgrcv(id, msg, sizeof(msg->text), 0, 0);
+    if (received < 0) {
+        shell_sched_throw_execution_error("[ShellSchedError] Failed to receive message.\n");
     }
 }
 

@@ -9,12 +9,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <string.h>
 
 #define _POSIX_C_SOURCE 200809L
 // #define __USE_POSIX 200809L
 #include <signal.h>
 
-#define SCHEDULER_QUANTUM 20
+#define SCHEDULER_QUANTUM 5
 
 int scheduler_shared_memory_id;
 ShellSchedSharedMemData* scheduler_shared_memory;
@@ -29,6 +30,7 @@ void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
     signal(SIGQUIT, destroy_scheduler);
     signal(SIGINT, execute_process_scheduler);
+    signal(SIGRTMIN, execute_process_scheduler);   // handle queued realtime signals
 
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
@@ -54,7 +56,9 @@ void shell_sched_run_scheduler() {
         // Round Robin
         //----------------------
         sleep(SCHEDULER_QUANTUM);
+        printf("\n<Running>\n");
     }
+    printf("End of scheduler!\n");
     exit(SHELL_SCHED_FINISHED);
 }
 
@@ -66,6 +70,7 @@ void execute_process_scheduler(int signal) {
 
     printf("Type: %d\n", scheduler_shared_memory->type);
     continue_parent_process();
+    printf("Done!\n");
 }
 
 void destroy_scheduler(int signal) {
@@ -85,9 +90,14 @@ void init_scheduler_queues(void) {
 }
 
 void continue_parent_process(void) {
-    int signal_result = kill(scheduler.parent, SIGINT);
-    printf("Continue process called.\n");
-    if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
-        shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
+    ShellSchedMessage msg;
+    msg.type = 1;
+    strcpy(msg.text, "scheduler-ready");
+
+    int msgid = shell_sched_get_msg();
+    if (msgid < 0) {
+        shell_sched_throw_execution_error("[ShellSchedError] Could not get message queue id.\n");
     }
+
+    shell_sched_snd(msgid, &msg);
 }
