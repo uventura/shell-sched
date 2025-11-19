@@ -25,6 +25,8 @@ ShellSchedScheduler scheduler;
 
 void init_scheduler_queues(void);
 void execute_process_scheduler(int signal);
+void list_scheduler_processes(int signal);
+
 void continue_parent_process(void);
 void destroy_scheduler(int signal);
 
@@ -36,6 +38,7 @@ void shell_sched_init_scheduler() {
     signal(SIGQUIT, destroy_scheduler);
     signal(SIGINT, execute_process_scheduler);
     signal(SIGRTMIN, execute_process_scheduler);
+    signal(SIGUSR1, list_scheduler_processes);
 
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
@@ -128,6 +131,22 @@ void execute_process_scheduler(int signal) {
         shell_sched_process_queue_push(&scheduler.process_queue[process->priority], process);
         printf("[Scheduler] Added PID=%d to queue %d\n", pid, process->priority);
     }
+    continue_parent_process();
+}
+
+void list_scheduler_processes(int signal) {
+    printf("Scheduler processes:\n");
+    for (int i = 0; i < scheduler.queues; ++i) {
+        ShellSchedProcessQueue* queue = &scheduler.process_queue[i];
+        printf("Queue %d (size=%d): ", i, queue->size);
+        ShellSchedProcess* current = queue->front;
+        while (current) {
+            printf("[PID=%d, prio=%d] -> ", current->pid, current->priority);
+            current = current->next;
+        }
+        printf("NULL\n");
+    }
+
     continue_parent_process();
 }
 

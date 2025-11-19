@@ -35,8 +35,10 @@ void execute_process(void);
 void list_scheduler(void);
 void exit_scheduler(void);
 void help_scheduler(void);
+int use_scheduler_warning(void);
 
 void continue_after_scheduler_signal(int signal);
+void sleep_until_scheduler_signal(int signal);
 void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
@@ -45,6 +47,8 @@ void shell_sched_run() {
     sigemptyset(&scheduler_set);
     sigaddset(&scheduler_set, SIGRTMIN);
     sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
+
+    signal(SIGUSR2, sleep_until_scheduler_signal);
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
@@ -101,6 +105,8 @@ void user_scheduler(void) {
 }
 
 void execute_process(void) {
+    if(use_scheduler_warning()) return;
+
     ShellSchedNewProcess process;
     shell_sched_check_scanf_result(scanf("%s %d", process.command, &process.priority));
 
@@ -114,7 +120,10 @@ void execute_process(void) {
 }
 
 void list_scheduler(void) {
-    // TODO
+    if(use_scheduler_warning()) return;
+
+    kill(scheduler_pid, SIGUSR1);
+    wait_scheduler_finish_action();
 }
 
 void exit_scheduler(void) {
@@ -145,4 +154,17 @@ void continue_after_scheduler_signal(int signal) {
 
 void wait_scheduler_finish_action(void) {
     sigwait(&scheduler_set, &scheduler_sig);
+}
+
+void sleep_until_scheduler_signal(int signal) {
+    wait_scheduler_finish_action();
+}
+
+int use_scheduler_warning(void) {
+    if(!scheduler_started) {
+        printf("[ShellSchedError] The scheduler is not started, please run 'user_scheduler <queues>' first.\n\n");
+        return 1;
+    }
+
+    return 0;
 }

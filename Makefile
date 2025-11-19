@@ -47,7 +47,7 @@ $(OBJ_DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 
 release: $(TARGET)
 
-example:
+examples:
 	@echo "Building test cases..."
 	@mkdir -p out/test
 	$(CC) test/test01.c -o out/test/test01
