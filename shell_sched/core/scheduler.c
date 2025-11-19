@@ -39,6 +39,8 @@ void shell_sched_init_scheduler() {
         return;
     }
 
+    printf("%d\n", scheduler.queues);
+
     init_scheduler_queues();
     scheduler.started = true;
     printf("Scheduler started.\n");
@@ -49,6 +51,8 @@ void shell_sched_init_scheduler() {
 void shell_sched_run_scheduler() {
     printf("Running scheduler...\n");
     while(1) {
+        // Round Robin
+        //----------------------
         sleep(SCHEDULER_QUANTUM);
     }
     exit(SHELL_SCHED_FINISHED);
@@ -63,6 +67,7 @@ void execute_process_scheduler(int signal) {
     printf("Type: %d\n", scheduler_shared_memory->type);
 
     continue_parent_process();
+    exit(0);
 }
 
 void destroy_scheduler(int signal) {
