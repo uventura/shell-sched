@@ -20,6 +20,16 @@ typedef struct {
     };
 } ShellSchedSharedMemData;
 
+typedef struct {
+    long type;
+    char text[128];
+} ShellSchedMessage;
+
+int shell_sched_init_msg();
+void shell_sched_destroy_msg();
+int shell_sched_get_msg();
+void shell_sched_snd(int id, ShellSchedMessage* msg);
+
 int shell_sched_init_shared_memory();
 void shell_sched_destroy_shared_memory();
 int shell_sched_get_shared_memory();

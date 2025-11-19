@@ -28,7 +28,7 @@ void destroy_scheduler(int signal);
 void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
     signal(SIGQUIT, destroy_scheduler);
-    signal(SIGUSR1, execute_process_scheduler);
+    signal(SIGINT, execute_process_scheduler);
 
     scheduler_shared_memory = shell_sched_attach_shared_memory();
     ShellSchedSharedMemData data = shell_sched_read_shared_memory(scheduler_shared_memory);
@@ -44,12 +44,12 @@ void shell_sched_init_scheduler() {
     init_scheduler_queues();
     scheduler.started = true;
     printf("Scheduler started.\n");
-
     continue_parent_process();
 }
 
 void shell_sched_run_scheduler() {
     printf("Running scheduler...\n");
+
     while(1) {
         // Round Robin
         //----------------------
@@ -65,7 +65,6 @@ void execute_process_scheduler(int signal) {
     }
 
     printf("Type: %d\n", scheduler_shared_memory->type);
-
     continue_parent_process();
 }
 
@@ -86,7 +85,7 @@ void init_scheduler_queues(void) {
 }
 
 void continue_parent_process(void) {
-    int signal_result = kill(scheduler.parent, SIGRTMIN);
+    int signal_result = kill(scheduler.parent, SIGINT);
     printf("Continue process called.\n");
     if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
         shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
