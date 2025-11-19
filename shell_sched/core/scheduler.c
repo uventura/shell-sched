@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <string.h>
+#include <fcntl.h>
 
 #define _POSIX_C_SOURCE 200809L
 // #define __USE_POSIX 200809L
@@ -181,3 +182,4 @@ static void scheduler_requeue_process(ShellSchedProcess* p) {
     }
     shell_sched_process_queue_push(&scheduler.process_queue[prio], p);
 }
+
