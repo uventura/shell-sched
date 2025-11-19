@@ -42,16 +42,17 @@ void wait_scheduler_finish_action(void);
 void shell_sched_run() {
     scheduler_started = false;
 
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     sigemptyset(&scheduler_set);
     sigaddset(&scheduler_set, SIGRTMIN);
     sigprocmask(SIG_BLOCK, &scheduler_set, NULL);
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     shell_sched_init_shared_memory();
     run_shared_memory = shell_sched_attach_shared_memory();
 
     while(RUNNING) {
         printf("> shell_sched: ");
-
         char command[MAX_COMMAND_SIZE];
 
         int scan_result = scanf("%s", command);
@@ -108,7 +109,7 @@ void execute_process(void) {
     shell_sched_write_shared_memory(run_shared_memory, data);
 
     kill(scheduler_pid, SIGUSR1);
-    wait_scheduler_finish_action();
+    // wait_scheduler_finish_action();
 }
 
 void list_scheduler(void) {
@@ -142,6 +143,8 @@ void continue_after_scheduler_signal(int signal) {
 }
 
 void wait_scheduler_finish_action(void) {
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Wait a signal which means that the process has been finished.
     sigwait(&scheduler_set, &scheduler_sig);
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 }
