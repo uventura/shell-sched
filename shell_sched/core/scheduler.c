@@ -16,6 +16,7 @@
 #include <signal.h>
 
 #define SCHEDULER_QUANTUM 5
+#define NEW_PROCESS_ERROR -1
 
 int scheduler_shared_memory_id;
 ShellSchedSharedMemData* scheduler_shared_memory;
@@ -25,6 +26,9 @@ void init_scheduler_queues(void);
 void execute_process_scheduler(int signal);
 void continue_parent_process(void);
 void destroy_scheduler(int signal);
+
+static ShellSchedProcess* scheduler_pick_next(void);
+static void scheduler_requeue_process(ShellSchedProcess* p);
 
 void shell_sched_init_scheduler() {
     printf("Starting scheduler...\n");
@@ -52,11 +56,31 @@ void shell_sched_init_scheduler() {
 void shell_sched_run_scheduler() {
     printf("Running scheduler...\n");
 
-    while(1) {
-        // Round Robin
-        //----------------------
+    while(RUNNING) {
+        ShellSchedProcess* process = scheduler_pick_next();
+        if (!process) {
+            sleep(1);
+            continue;
+        }
+
+        printf("[Scheduler] Running PID=%d (prio=%d)\n", process->pid, process->priority);
+        if (kill(process->pid, 0) == -1 && errno == ESRCH) {
+            printf("[Scheduler] PID %d no longer exists.\n", process->pid);
+            free(process);
+            continue;
+        }
+
+        kill(process->pid, SIGCONT);
         sleep(SCHEDULER_QUANTUM);
-        // printf("\n<Running>\n");
+        kill(process->pid, SIGSTOP);
+
+        if (kill(process->pid, 0) == -1 && errno == ESRCH) {
+            printf("[Scheduler] PID %d terminated.\n", process->pid);
+            free(process);
+        } else {
+            scheduler_requeue_process(process);
+        }
+        // sleep(SCHEDULER_QUANTUM);
     }
     exit(SHELL_SCHED_FINISHED);
 }
@@ -67,7 +91,43 @@ void execute_process_scheduler(int signal) {
         exit(-1);
     }
 
-    printf("Type: %d\n", scheduler_shared_memory->type);
+    if (scheduler_shared_memory->type == NEW_PROCESS_SHARED) {
+
+        ShellSchedNewProcess new_process = scheduler_shared_memory->process;
+
+        printf("[Scheduler] New process: priority=%d\n", new_process.priority);
+        printf("[Scheduler] Command: %s\n", new_process.command);
+
+        pid_t pid = fork();
+        if (pid == NEW_PROCESS_ERROR) {
+            perror("[Scheduler] fork() failed");
+            continue_parent_process();
+            return;
+        } else if(pid == CHILD_PROCESS) {
+            execl("/bin/sh", "sh", "-c", new_process.command, NULL);
+            perror("[Scheduler] exec failed");
+            exit(1);
+        }
+
+        ShellSchedProcess* process = malloc(sizeof(ShellSchedProcess));
+        if (!process) {
+            perror("[Scheduler] malloc failed");
+            continue_parent_process();
+            return;
+        }
+
+        process->pid = pid;
+        process->priority = new_process.priority;
+        process->remaining = 0;
+        process->next = NULL;
+
+        if (process->priority < 0 || process->priority >= scheduler.queues) {
+            process->priority = scheduler.queues - 1;
+        }
+
+        shell_sched_process_queue_push(&scheduler.process_queue[process->priority], process);
+        printf("[Scheduler] Added PID=%d to queue %d\n", pid, process->priority);
+    }
     continue_parent_process();
 }
 
@@ -75,6 +135,15 @@ void destroy_scheduler(int signal) {
     if(scheduler.started) {
         shell_sched_dettach_shared_memory(scheduler_shared_memory);
         shell_sched_process_queue_free(scheduler.process_queue);
+
+        for (int i = 0; i < scheduler.queues; ++i) {
+            ShellSchedProcessQueue* queue = &scheduler.process_queue[i];
+            while (queue->size > 0) {
+                ShellSchedProcess* process = shell_sched_process_queue_pop(queue);
+                if(process) free(process);
+            }
+            shell_sched_process_queue_free(queue);
+        }
     }
 
     printf("Scheduler destroyed.\n");
@@ -92,4 +161,24 @@ void continue_parent_process(void) {
     if(signal_result != SHELL_SCHED_SUCCESSFULL_REQUEST) {
         shell_sched_throw_execution_error("[ShellSchedError] Error in sending signal result.");
     }
+}
+
+static ShellSchedProcess* scheduler_pick_next(void) {
+    for (int i = 0; i < scheduler.queues; ++i) {
+        ShellSchedProcessQueue* q = &scheduler.process_queue[i];
+        if (q->size > 0) {
+            return shell_sched_process_queue_pop(q);
+        }
+    }
+    return NULL;
+}
+
+static void scheduler_requeue_process(ShellSchedProcess* p) {
+    if (!p) return;
+    int prio = p->priority;
+
+    if (prio < 0 || prio >= scheduler.queues) {
+        prio = scheduler.queues - 1;
+    }
+    shell_sched_process_queue_push(&scheduler.process_queue[prio], p);
 }

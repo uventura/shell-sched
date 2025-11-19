@@ -45,10 +45,11 @@ $(OBJ_DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 
 release: $(TARGET)
 
-# Disabbling Debug mode for instance
-# debug: $(OBJS_DEBUG)
-# 	@mkdir -p $(DEBUG_BIN_DIR)
-# 	$(CC) -o $(DEBUG_BIN_DIR)/$(TARGET) $^ $(DEBUG_FLAGS) -I .
+test:
+	@echo "Building test cases..."
+	@mkdir -p out/test
+	gcc test/test01.c -o out/test/test01
+	gcc test/test02.c -o out/test/test02
 
 clean:
 	@echo "Clean up environment..."

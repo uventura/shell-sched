@@ -17,10 +17,8 @@
 #include <signal.h>
 #include <sys/msg.h>
 
-#define RUNNING 1
 #define MAX_COMMAND_SIZE 1000
 #define STR_EQUAL 0
-#define CHILD_PROCESS 0
 
 int run_share_memory_id;
 ShellSchedSharedMemData* run_shared_memory;
