@@ -45,8 +45,6 @@ void exit_scheduler(void);
 void help_scheduler(void);
 int use_scheduler_warning(void);
 
-void continue_after_scheduler_signal(int signal);
-void sleep_until_scheduler_signal(int signal);
 void wait_scheduler_finish_action(void);
 
 void shell_sched_run() {
@@ -163,16 +161,8 @@ void help_scheduler(void) {
     printf("====================================\n");
 }
 
-void continue_after_scheduler_signal(int signal) {
-    printf("Continue called %d\n", getpid());
-}
-
 void wait_scheduler_finish_action(void) {
     sigwait(&scheduler_set, &scheduler_sig);
-}
-
-void sleep_until_scheduler_signal(int signal) {
-    wait_scheduler_finish_action();
 }
 
 int use_scheduler_warning(void) {
